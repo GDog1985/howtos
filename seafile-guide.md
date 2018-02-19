@@ -78,97 +78,92 @@ map $http_upgrade $connection_upgrade {
   ''      close;
 }
 
+
 server {
-  listen 80;
-  listen [::]:80;
-  server_name example.com;
-  # Useful for Let's Encrypt
-  location /.well-known/acme-challenge/ { allow all; }
-  location / { return 301 https://$host$request_uri; }
+        listen        80;
+        server_name   seafile.example.com;
+        return 301  https://$host$request_uri;
 }
 
 server {
-  listen 443 ssl http2;
-  listen [::]:443 ssl http2;
-  server_name example.com;
+    listen 443 ssl;
+    server_name seafile.example.com;
+    ssl on;
+    ssl_protocols           TLSv1 TLSv1.1 TLSv1.2;
+    ssl_certificate         /etc/nginx/ssl/server.crt;
+    ssl_certificate_key    /etc/nginx/ssl/server.key;
 
-  ssl_protocols TLSv1.2;
-  ssl_ciphers HIGH:!MEDIUM:!LOW:!aNULL:!NULL:!SHA;
-  ssl_prefer_server_ciphers on;
-  ssl_session_cache shared:SSL:10m;
+    ssl_ciphers  'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!CAMELLIA:!DES:!MD5:!PSK:!RC4';
+    ssl_dhparam   /etc/nginx/ssl/dhparam.pem;
+    ssl_prefer_server_ciphers  on;
 
-  ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+    location / {
+        fastcgi_pass    127.0.0.1:8000;
+        fastcgi_param   SCRIPT_FILENAME     $document_root$fastcgi_script_name;
+        fastcgi_param   PATH_INFO           $fastcgi_script_name;
 
-  keepalive_timeout    70;
-  sendfile             on;
-  client_max_body_size 0;
+        fastcgi_param   SERVER_PROTOCOL        $server_protocol;
+        fastcgi_param   QUERY_STRING        $query_string;
+        fastcgi_param   REQUEST_METHOD      $request_method;
+        fastcgi_param   CONTENT_TYPE        $content_type;
+        fastcgi_param   CONTENT_LENGTH      $content_length;
+        fastcgi_param   SERVER_ADDR         $server_addr;
+        fastcgi_param   SERVER_PORT         $server_port;
+        fastcgi_param   SERVER_NAME         $server_name;
+        fastcgi_param   REMOTE_ADDR         $remote_addr;
 
-  root /home/mastodon/live/public;
+        access_log      /var/log/nginx/seahub.access.log;
+        error_log       /var/log/nginx/seahub.error.log;
+        fastcgi_read_timeout 36000;
+    }
 
-  gzip on;
-  gzip_disable "msie6";
-  gzip_vary on;
-  gzip_proxied any;
-  gzip_comp_level 6;
-  gzip_buffers 16 8k;
-  gzip_http_version 1.1;
-  gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    # Reverse Proxy for seahub
+    location /seafhttp {
+        rewrite ^/seafhttp(.*)$ $1 break;
+        proxy_pass http://127.0.0.1:8082;
+        client_max_body_size 0;
+        proxy_connect_timeout  36000s;
+        proxy_read_timeout  36000s;
+        proxy_send_timeout  36000s;
+        send_timeout  36000s;
+    }
 
-  add_header Strict-Transport-Security "max-age=31536000";
+    #CHANGE THIS PATH WITH YOUR OWN DIRECTORY
+    location /media {
+        root /var/www/seafile/seafile-server/seahub;
+    }
+    location /seafdav {
+        fastcgi_pass    127.0.0.1:8080;
+        fastcgi_param   SCRIPT_FILENAME     $document_root$fastcgi_script_name;
+        fastcgi_param   PATH_INFO           $fastcgi_script_name;
 
-  location / {
-    try_files $uri @proxy;
-  }
+        fastcgi_param   SERVER_PROTOCOL     $server_protocol;
+        fastcgi_param   QUERY_STRING        $query_string;
+        fastcgi_param   REQUEST_METHOD      $request_method;
+        fastcgi_param   CONTENT_TYPE        $content_type;
+        fastcgi_param   CONTENT_LENGTH      $content_length;
+        fastcgi_param   SERVER_ADDR         $server_addr;
+        fastcgi_param   SERVER_PORT         $server_port;
+        fastcgi_param   SERVER_NAME         $server_name;
+        fastcgi_param   HTTPS               on;
+        fastcgi_param   HTTP_SCHEME         https;
 
-  location ~ ^/(emoji|packs|system/accounts/avatars|system/media_attachments/files) {
-    add_header Cache-Control "public, max-age=31536000, immutable";
-    try_files $uri @proxy;
-  }
+        client_max_body_size 0;
+        proxy_connect_timeout  36000s;
+        proxy_read_timeout  36000s;
+        proxy_send_timeout  36000s;
+        send_timeout  36000s;
 
-  location /sw.js {
-    add_header Cache-Control "public, max-age=0";
-    try_files $uri @proxy;
-  }
+        # This option is only available for Nginx >= 1.8.0. See more details below.
+        proxy_request_buffering off;
 
-  location @proxy {
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto https;
-    proxy_set_header Proxy "";
-    proxy_pass_header Server;
+        access_log      /var/log/nginx/seafdav.access.log;
+        error_log       /var/log/nginx/seafdav.error.log;
+        }
 
-    proxy_pass http://127.0.0.1:3000;
-    proxy_buffering off;
-    proxy_redirect off;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
+    }
 
-    tcp_nodelay on;
-  }
-
-  location /api/v1/streaming {
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto https;
-    proxy_set_header Proxy "";
-
-    proxy_pass http://127.0.0.1:4000;
-    proxy_buffering off;
-    proxy_redirect off;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-
-    tcp_nodelay on;
-  }
-
-  error_page 500 501 502 503 504 /500.html;
-}
-```
+}```
 
 Activate the [nginx](http://nginx.org) configuration added:
 
