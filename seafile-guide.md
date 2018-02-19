@@ -247,6 +247,7 @@ That is it. Your server will renew your [Let's Encrypt](https://letsencrypt.org/
 
 - nano  seafile.service
 ###-
+'''
 [Unit]
 Description=Seafile Server
 Before=seahub.service
@@ -262,11 +263,14 @@ Group=nginx
 
 [Install]
 WantedBy=multi-user.target
+
+'''
+
 ###-
 
 - nano seahub.service
 
-
+'''
 [Unit]
 Description=Seafile Hub
 After=network.target seafile.target mariadb.service
@@ -281,7 +285,7 @@ Group=nginx
 
 [Install]
 WantedBy=multi-user.target
-
+'''
 ###
 
 
