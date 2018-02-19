@@ -2,15 +2,13 @@
 
 **Disclaimer:**
 
-This guide was written for [Ubuntu Server 16.04](https://www.ubuntu.com/server), you may run into issues if you are using another operating system. We are welcoming contributions for guides to other distributions.
+This guide was written for [Centos 7.x](https://www.centos.org/), you may run into issues if you are using another operating system. We are welcoming contributions for guides to other distributions.
 
 This document is also written with the expectation that you have a technical level high enough to administrate Linux servers.
 
-If you need help setting up your instance, you may want to try tooting at the [#MastoAdmins](https://mastodon.social/tags/mastoadmins) hashtag.
-
 ## What is this guide?
 
-This guide is a walk through of the setup process of a [Mastodon](https://github.com/tootsuite/mastodon/) instance.
+This guide is a walk through of the setup process of a [Seafile](https://www.seafile.com/en/home/) instance.
 
 We use example.com to represent a domain or sub-domain. Example.com should be replaced with your instance domain or sub-domain.
 
@@ -18,7 +16,7 @@ We use example.com to represent a domain or sub-domain. Example.com should be re
 
 You will need the following for this guide:
 
-- A server running [Ubuntu Server 16.04](https://www.ubuntu.com/server).
+- A server running [Centos 7.x](https://www.Centos.org).
 - Root access to the server.
 - A domain or sub-domain to use for the instance.
 
@@ -41,139 +39,29 @@ The records added are:
 > You can install [tmux](https://github.com/tmux/tmux/wiki) from the package manager:
 >
 > ```sh
-> apt -y install tmux
+> yum  -y install tmux
 > ```
 
 ## Dependency Installation
 
 All dependencies should be installed as root.
 
-### node.js Repository
-
-You will need to add an external repository so we can have the version of [node.js](https://nodejs.org/en/) required.
-
-We run this script to add the repository:
-
-```sh
-apt -y install curl
-curl -sL https://deb.nodesource.com/setup_7.x | bash -
-```
-
-The [node.js](https://nodejs.org/en/) repository is now added.
-
-###  Yarn Repository
-
-Another repository needs to be added so we can get the version of [Yarn](https://yarnpkg.com/en/) used by [Mastodon](https://github.com/tootsuite/mastodon/).
-
-This is how you add the repository:
-
-```sh
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-apt update
-```
-
 ### Various Other Dependencies
 
-Now you need to install [Yarn](https://yarnpkg.com/en/) plus some more software.
+
 
 #### Explanation of the dependencies
 
 - imagemagick - Mastodon uses imagemagick for image related operations
-- ffmpeg - Mastodon uses ffmpeg for conversion of GIFs to MP4s
-- libprotobuf-dev and protobuf-compiler - Mastodon uses these for language detection
 - nginx - nginx is our frontend web server
-- redis-* - Mastodon uses redis for its in-memory data structure store
-- postgresql-* - Mastodon uses PostgreSQL as it's SQL database
-- nodejs - Node is used for Mastodon's streaming API
-- yarn - Yarn is a Node.js package manager
-- Other -dev packages, g++ - these are needed for the compilation of Ruby using ruby-build.
+- epel-release -
+- python
+- mariadb
 
 ```sh
-apt -y install imagemagick ffmpeg libpq-dev libxml2-dev libxslt1-dev file git-core g++ libprotobuf-dev protobuf-compiler pkg-config nodejs gcc autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev nginx redis-server redis-tools postgresql postgresql-contrib letsencrypt yarn libidn11-dev libicu-dev
-```
+yum -y install epel-release
+yum -y install python-imaging MySQL-python python-simplejson python-setuptools mariadb mariadb-server nginx
 
-### Dependencies That Need To Be Added As A Non-Root User
-
-Let us create this user first:
-
-```sh
-adduser mastodon
-```
-
-Log in as the `mastodon` user:
-
-
-```sh
-sudo su - mastodon
-```
-
-We will need to set up [`rbenv`](https://github.com/rbenv/rbenv) and [`ruby-build`](https://github.com/rbenv/ruby-build):
-
-```sh
-git clone https://github.com/rbenv/rbenv.git ~/.rbenv
-cd ~/.rbenv && src/configure && make -C src
-echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
-echo 'eval "$(rbenv init -)"' >> ~/.bashrc
-# Restart shell
-exec bash
-# Check if rbenv is correctly installed
-type rbenv
-# Install ruby-build as rbenv plugin
-git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build
-```
-
-Now that [`rbenv`](https://github.com/rbenv/rbenv) and [`ruby-build`](https://github.com/rbenv/ruby-build) are installed, we will install the
-[Ruby](https://www.ruby-lang.org/en/) version which [Mastodon](https://github.com/tootsuite/mastodon/) uses. That version will also need to be enabled.
-
-To enable [Ruby](https://www.ruby-lang.org/en/), run:
-
-```sh
-rbenv install 2.4.2
-rbenv global 2.4.2
-```
-
-**This will take some time. Go stretch for a bit and drink some water while the commands run.**
-
-### node.js And Ruby Dependencies
-
-Now that [Ruby](https://www.ruby-lang.org/en/) is enabled, we will clone the [Mastodon git repository](https://github.com/tootsuite/mastodon/) and install the [Ruby](https://www.ruby-lang.org/en/) and [node.js](https://nodejs.org/en/) dependancies.
-
-Run the following to clone and install:
-
-```sh
-# Return to mastodon user's home directory
-cd ~
-# Clone the mastodon git repository into ~/live
-git clone https://github.com/tootsuite/mastodon.git live
-# Change directory to ~live
-cd ~/live
-# 
-# Checkout to the latest stable branch
-git checkout $(git tag -l | grep -v 'rc[0-9]*$' | sort -V | tail -n 1)
-# Install bundler
-gem install bundler
-# Use bundler to install the rest of the Ruby dependencies
-bundle install --deployment --without development test
-# Use yarn to install node.js dependencies
-yarn install --pure-lockfile
-```
-
-That is all we need to do for now with the `mastodon` user, you can now `exit` back to root.
-
-## PostgreSQL Database Creation
-
-[Mastodon](https://github.com/tootsuite/mastodon/) requires access to a [PostgreSQL](https://www.postgresql.org) instance.
-
-Create a user for a [PostgreSQL](https://www.postgresql.org) instance:
-
-```
-# Launch psql as the postgres user
-sudo -u postgres psql
-
-# In the following prompt
-CREATE USER mastodon CREATEDB;
-\q
 ```
 
 **Note** that we do not set up a password of any kind, this is because we will be using ident authentication. This allows local users to access the database without a password.
