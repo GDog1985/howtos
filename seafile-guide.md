@@ -250,7 +250,7 @@ That is it. Your server will renew your [Let's Encrypt](https://letsencrypt.org/
  nano  seafile.service
 ```
 
-``[Unit]
+```[Unit]
 Description=Seafile Server
 Before=seahub.service
 After=network.target mariadb.service
@@ -269,7 +269,6 @@ WantedBy=multi-user.target
 ```
 
 ```sh
-
 nano seahub.service
 ```
 ```[Unit]
