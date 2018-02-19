@@ -163,7 +163,8 @@ server {
 
     }
 
-}```
+}
+```
 
 Activate the [nginx](http://nginx.org) configuration added:
 
@@ -245,10 +246,11 @@ That is it. Your server will renew your [Let's Encrypt](https://letsencrypt.org/
 
 ## Seafile systemd Service Files
 
-- nano  seafile.service
-###-
-'''
-[Unit]
+```sh
+ nano  seafile.service
+```
+
+``[Unit]
 Description=Seafile Server
 Before=seahub.service
 After=network.target mariadb.service
@@ -264,14 +266,13 @@ Group=nginx
 [Install]
 WantedBy=multi-user.target
 
-'''
+```
 
-###-
+```sh
 
-- nano seahub.service
-
-'''
-[Unit]
+nano seahub.service
+```
+```[Unit]
 Description=Seafile Hub
 After=network.target seafile.target mariadb.service
 
@@ -285,9 +286,7 @@ Group=nginx
 
 [Install]
 WantedBy=multi-user.target
-'''
-###
-
+```
 
 ## Seafile Application Configuration
 
