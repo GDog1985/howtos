@@ -1,4 +1,4 @@
-# Mastodon Production Guide
+# Seafile Production Guide
 
 **Disclaimer:**
 
@@ -43,12 +43,6 @@ The records added are:
 > ```
 
 ## Dependency Installation
-
-All dependencies should be installed as root.
-
-### Various Other Dependencies
-
-
 
 #### Explanation of the dependencies
 
@@ -252,192 +246,14 @@ systemctl restart cron
 
 That is it. Your server will renew your [Let's Encrypt](https://letsencrypt.org/) certificate.
 
-## Mastodon Application Configuration
+## Seafile Application Configuration
 
-We will configure the Mastodon application.
+We will configure the Seafile application.
 
-For this we will switch to the `mastodon` system user:
-
-
-```sh
-sudo su - mastodon
-```
-
-Change directory to `~live` and edit the [Mastodon](https://github.com/tootsuite/mastodon/) application configuration:
+Change directory to `/var/www/html/seafile` and edit the [Seafile](https://seafile.com/) application configuration:
 
 ```sh
-cd ~/live
-cp .env.production.sample .env.production
-nano .env.production
+cd /var/www/html/seafile
 ```
-
-For the purposes of this guide, these are the values to be edited:
-
-```
-# Your Redis host
-REDIS_HOST=127.0.0.1
-# Your Redis port
-REDIS_PORT=6379
-# Your PostgreSQL host
-DB_HOST=/var/run/postgresql
-# Your PostgreSQL user
-DB_USER=mastodon
-# Your PostgreSQL DB name
-DB_NAME=mastodon_production
-# Leave DB password empty
-DB_PASS=
-# Your DB_PORT
-DB_PORT=5432
-
-# Your instance's domain
-LOCAL_DOMAIN=example.com
-# We have HTTPS enabled
-LOCAL_HTTPS=true
-
-# Application secrets
-# Generate each with `RAILS_ENV=production bundle exec rake secret`
-PAPERCLIP_SECRET=
-SECRET_KEY_BASE=
-OTP_SECRET=
-
-# Web Push VAPID keys
-# Generate with `RAILS_ENV=production bundle exec rake mastodon:webpush:generate_vapid_key`
-VAPID_PRIVATE_KEY=
-VAPID_PUBLIC_KEY=
-
-# All SMTP details, Mailgun and Sparkpost have free tiers
-SMTP_SERVER=
-SMTP_PORT=
-SMTP_LOGIN=
-SMTP_PASSWORD=
-SMTP_FROM_ADDRESS=
-```
-
-We now need to set up the [PostgreSQL](https://www.postgresql.org) database for the first time:
-
-```sh
-RAILS_ENV=production bundle exec rails db:setup
-```
-
-Then we will need to precompile all CSS and JavaScript files:
-
-```sh
-RAILS_ENV=production bundle exec rails assets:precompile
-```
-
-**The assets precompilation takes a couple minutes, so this is a good time to take another break.**
-
-## Mastodon systemd Service Files
-
-We will need three [systemd](https://github.com/systemd/systemd) service files for each Mastodon service.
-
-Now switch back to the root user.
-
-For the [Mastodon](https://github.com/tootsuite/mastodon/) web workers service place the following in `/etc/systemd/system/mastodon-web.service`:
-
-```
-[Unit]
-Description=mastodon-web
-After=network.target
-
-[Service]
-Type=simple
-User=mastodon
-WorkingDirectory=/home/mastodon/live
-Environment="RAILS_ENV=production"
-Environment="PORT=3000"
-ExecStart=/home/mastodon/.rbenv/shims/bundle exec puma -C config/puma.rb
-ExecReload=/bin/kill -SIGUSR1 $MAINPID
-TimeoutSec=15
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-For [Mastodon](https://github.com/tootsuite/mastodon/) background queue service, place the following in `/etc/systemd/system/mastodon-sidekiq.service`:
-
-```
-[Unit]
-Description=mastodon-sidekiq
-After=network.target
-
-[Service]
-Type=simple
-User=mastodon
-WorkingDirectory=/home/mastodon/live
-Environment="RAILS_ENV=production"
-Environment="DB_POOL=5"
-ExecStart=/home/mastodon/.rbenv/shims/bundle exec sidekiq -c 5 -q default -q mailers -q pull -q push
-TimeoutSec=15
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-For the [Mastodon](https://github.com/tootsuite/mastodon/) streaming API service place the following in `/etc/systemd/system/mastodon-streaming.service`:
-
-```
-[Unit]
-Description=mastodon-streaming
-After=network.target
-
-[Service]
-Type=simple
-User=mastodon
-WorkingDirectory=/home/mastodon/live
-Environment="NODE_ENV=production"
-Environment="PORT=4000"
-ExecStart=/usr/bin/npm run start
-TimeoutSec=15
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Now you need to enable all of these services:
-
-```sh
-systemctl enable /etc/systemd/system/mastodon-*.service
-```
-
-Now start the services:
-
-```sh
-systemctl start mastodon-*.service
-```
-
-Check that they are properly running:
-
-```sh
-systemctl status mastodon-*.service
-```
-
-## Email Service
-
-If you plan on receiving email notifications or running more than just a single-user instance, you likely will want to get set up with an email provider.
-
-There are several free email providers out there- a couple of decent ones are Mailgun.com, which requires a credit card but gives 10,000 free emails, and Sparkpost.com, which gives 15,000 with no credit card but requires you not be on a .space tld.
-
-It may be easier to use a subdomain to setup your email with a custom provider - in this case, when registering your domain with the email service, sign up as something like "mail.domain.com"
-
-Once you create your account, follow the instructions each provider gives you for updating your DNS records.  Once you have all the information ready to go and the service validates your DNS configuration, edit your config file.  These records should already exist in the configuration, but here's a sample setup that uses Mailgun that you can replace with your own personal info:
-
-SMTP_SERVER=smtp.mailgun.org
-SMTP_PORT=587
-SMTP_LOGIN=anAccountThatIsntPostmaster@mstdn.domain.com
-SMTP_PASSWORD=HolySnacksAPassword
-SMTP_FROM_ADDRESS=Domain.com Mastodon Admin <notifications@domain.com>
-
-Finally, to test this, spin up a Rails console (see [the administration guide](https://github.com/tootsuite/documentation/blob/master/Running-Mastodon/Administration-guide.md)) and run the following commands to test this out:
-
-```
-m = UserMailer.new.mail to:'email@address.com', subject: 'test', body: 'awoo'
-m.deliver
-```
-
-That is all! If everything was done correctly, a [Mastodon](https://github.com/tootsuite/mastodon/) instance will appear when you visit `https://example.com` in a web browser.
 
 Congratulations and welcome to the fediverse!
