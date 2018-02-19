@@ -239,7 +239,51 @@ chmod +x /etc/cron.daily/letsencrypt-renew
 systemctl restart cron
 ```
 
+
 That is it. Your server will renew your [Let's Encrypt](https://letsencrypt.org/) certificate.
+
+
+## Seafile systemd Service Files
+
+- nano  seafile.service
+###-
+[Unit]
+Description=Seafile Server
+Before=seahub.service
+After=network.target mariadb.service
+
+[Service]
+Type=oneshot
+ExecStart=/var/www/seafile/seafile-server/seafile.sh start
+ExecStop=/var/www/seafile/seafile-server/seafile.sh stop
+RemainAfterExit=yes
+User=nginx
+Group=nginx
+
+[Install]
+WantedBy=multi-user.target
+###-
+
+- nano seahub.service
+
+
+[Unit]
+Description=Seafile Hub
+After=network.target seafile.target mariadb.service
+
+[Service]
+Type=oneshot
+ExecStart=/var/www/seafile/seafile-server/seahub.sh start-fastcgi
+ExecStop=/var/www/seafile/seafile-server/seahub.sh stop
+RemainAfterExit=yes
+User=nginx
+Group=nginx
+
+[Install]
+WantedBy=multi-user.target
+
+###
+
 
 ## Seafile Application Configuration
 
