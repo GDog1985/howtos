@@ -345,7 +345,7 @@ cd /var/www/html/seafile/
 nano conf/ccnet.conf
 SERVICE_URL = https://
 ```
-## ldap /freeipa configuration
+## ldap / freeipa configuration
 
 ```sh
 [LDAP]
