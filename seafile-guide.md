@@ -68,21 +68,8 @@ tar -xzvf seafile-server_6.2.5_x86-64.tar.gz
 mv seafile-server-6.2.5 seafile-server
 cd seafile-server/
 ```
-```sh
-./setup-seafile-mysql.sh
-./seafile.sh start
-./seahub.sh start
-./seafile.sh stop
-./seahub.sh stop
-```
 
-```sh
-cd /var/www/
-chown -R nginx:nginx *
-chown -R nginx:nginx /tmp/seahub_cache
-
-```
-## Mysql  Configuration
+## Mysql  Configuration First
 
 
 ```sh
@@ -104,6 +91,22 @@ grant all privileges on seahub_db.* to seacloud@localhost identified by 'your pa
 flush privileges;
 exit
 ```
+
+```sh
+./setup-seafile-mysql.sh
+./seafile.sh start
+./seahub.sh start
+./seafile.sh stop
+./seahub.sh stop
+```
+
+```sh
+cd /var/www/
+chown -R nginx:nginx *
+chown -R nginx:nginx /tmp/seahub_cache
+
+```
+
 ## Nginx Configuration
 
 You need to configure [nginx](http://nginx.org) to serve your [Seafile](https://seaflie.com) instance.
