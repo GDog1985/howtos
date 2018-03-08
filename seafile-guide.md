@@ -38,9 +38,9 @@ The records added are:
 >
 > You can install [tmux](https://github.com/tmux/tmux/wiki) from the package manager:
 >
-> ```sh
-> yum  -y install tmux
-> ```
+```sh
+ yum  -y install tmux
+ ```
 
 ## Dependency Installation
 
@@ -91,9 +91,11 @@ grant all privileges on seahub_db.* to seacloud@localhost identified by 'your pa
 flush privileges;
 exit
 ```
+## After Mysql is all setup
 
 ```sh
 ./setup-seafile-mysql.sh
+
 ./seafile.sh start
 ./seahub.sh start
 ./seafile.sh stop
@@ -115,12 +117,12 @@ You need to configure [nginx](http://nginx.org) to serve your [Seafile](https://
 
 `cd` to `/etc/nginx/sites-available` and open a new file:
 
-`nano /etc/nginx/sites-available/example.com.conf`
-
+```sh
+nano /etc/nginx/sites-available/example.com.conf`
+```
 Copy and paste the following and make edits as necessary:
 
-```nginx
-
+```sh
 map $http_upgrade $connection_upgrade {
   default upgrade;
   ''      close;
@@ -180,6 +182,7 @@ server {
     location /media {
         root /var/www/seafile/seafile-server/seahub;
     }
+    #SEAFDAV ENABLE HERE BY DEFAULT
     location /seafdav {
         fastcgi_pass    127.0.0.1:8080;
         fastcgi_param   SCRIPT_FILENAME     $document_root$fastcgi_script_name;
@@ -214,7 +217,8 @@ server {
 
 ```
 
-Activate the [nginx](http://nginx.org) configuration added:
+
+## Activate the [nginx](http://nginx.org) configuration added:
 
 ```sh
 cd /etc/nginx/sites-enabled
@@ -357,7 +361,7 @@ SERVICE_URL = https://
 HOST = ldap://
 BASE = dc=example,dc=org
 USER_DN = cn=Directory Manager
-PASSWORD =
+PASSWORD = your password
 LOGIN_ATTR = mail
 
 [LDAP_SYNC]
@@ -369,5 +373,14 @@ ENABLE_EXTRA_USER_INFO_SYNC = true
 FIRST_NAME_ATTR = givenName
 LAST_NAME_ATTR = sn
 ```
+## SEAFDAV
 
-Congratulations and welcome to the fediverse!
+nano conf/seafdav.conf
+
+```sh
+[WEBDAV]
+enabled = true
+port = 8080
+fastcgi = true
+share_name = /seafdav
+```
