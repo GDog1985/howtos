@@ -80,7 +80,7 @@ cd seafile-server/
 cd /var/www/
 chown -R nginx:nginx *
 chown -R nginx:nginx /tmp/seahub_cache
-cd /etc/systemd/system/
+
 ```
 ## Mysql  Configuration
 
@@ -287,6 +287,8 @@ That is it. Your server will renew your [Let's Encrypt](https://letsencrypt.org/
 
 
 ## Seafile systemd Service Files
+
+cd /etc/systemd/system/
 
 ```sh
  nano  seafile.service
