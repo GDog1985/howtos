@@ -46,7 +46,7 @@ The records added are:
 
 #### Explanation of the dependencies
 
-- imagemagick - Mastodon uses imagemagick for image related operations
+- imagemagick -  uses imagemagick for image related operations
 - nginx - nginx is our frontend web server
 - epel-release -
 - python
@@ -57,12 +57,56 @@ yum -y install epel-release
 yum -y install python-imaging MySQL-python python-simplejson python-setuptools mariadb mariadb-server nginx
 
 ```
+## Seafile install
 
-**Note** that we do not set up a password of any kind, this is because we will be using ident authentication. This allows local users to access the database without a password.
+```sh
+mkdir -p /var/www/seafile
+cd /var/www/seafile
 
-## nginx Configuration
+wget https://download.seadrive.org/seafile-server_6.2.5_x86-64.tar.gz
+tar -xzvf seafile-server_6.2.5_x86-64.tar.gz
+mv seafile-server-6.2.5 seafile-server
+cd seafile-server/
+```
+```sh
+./setup-seafile-mysql.sh
+./seafile.sh start
+./seahub.sh start
+./seafile.sh stop
+./seahub.sh stop
+```
 
-You need to configure [nginx](http://nginx.org) to serve your [Mastodon](https://github.com/tootsuite/mastodon/) instance.
+```sh
+cd /var/www/
+chown -R nginx:nginx *
+chown -R nginx:nginx /tmp/seahub_cache
+cd /etc/systemd/system/
+```
+## Mysql  Configuration
+
+
+```sh
+systemctl start mariadb
+mysql_secure_installation
+
+mysql -u root -p
+```
+```sh
+create database ccnet_db character set = 'utf8';
+create database seafile_db character set = 'utf8';
+create database seahub_db character set = 'utf8';
+
+create user seacloud@localhost identified by 'your password';
+
+grant all privileges on ccnet_db.* to seacloud@localhost identified by 'your password';
+grant all privileges on seafile_db.* to seacloud@localhost identified by 'your password';
+grant all privileges on seahub_db.* to seacloud@localhost identified by 'your password';
+flush privileges;
+exit
+```
+## Nginx Configuration
+
+You need to configure [nginx](http://nginx.org) to serve your [Seafile](https://seaflie.com) instance.
 
 **Reminder: Replace all occurrences of example.com with your own instance's domain or sub-domain.**
 
@@ -73,6 +117,7 @@ You need to configure [nginx](http://nginx.org) to serve your [Mastodon](https:/
 Copy and paste the following and make edits as necessary:
 
 ```nginx
+
 map $http_upgrade $connection_upgrade {
   default upgrade;
   ''      close;
@@ -163,7 +208,7 @@ server {
 
     }
 
-}
+
 ```
 
 Activate the [nginx](http://nginx.org) configuration added:
@@ -188,7 +233,7 @@ as your TLS certificate provider.
 
 We need to generate Let's Encrypt certificates.
 
-**Make sure to replace any occurrence of 'example.com' with your Mastodon instance's domain.**
+**Make sure to replace any occurrence of 'example.com' with your Seafile instance's domain.**
 
 Make sure that [nginx](http://nginx.org) is stopped at this point:
 
@@ -200,16 +245,13 @@ We will be creating the certificate twice, once with TLS SNI validation in stand
 [nginx](http://nginx.org) and the [Let's Encrypt](https://letsencrypt.org/) tool works.
 
 ```sh
-letsencrypt certonly --standalone -d example.com
+ sudo certbot --nginx
+ or
+ sudo certbot --nginx certonly
+
 ```
 
-After that successfully completes, we will use the webroot method. This requires [nginx](http://nginx.org) to be running:
 
-```sh
-systemctl start nginx
-# The letsencrypt tool will ask if you want issue a new cert, please choose that option
-letsencrypt certonly --webroot -d example.com -w /home/mastodon/live/public/
-```
 
 ### Automated Renewal Of Let's Encrypt Certificate
 
@@ -217,17 +259,17 @@ letsencrypt certonly --webroot -d example.com -w /home/mastodon/live/public/
 
 You need to renew your certificate before the expiration date. Not doing so will make users of your instance unable to access the instance and users of other instances unable to federate with yours.
 
-We can create a cron job that runs daily to do this:
+We can create a cron job that runs monthly to do this:
 
 ```sh
-nano /etc/cron.daily/letsencrypt-renew
+nano /etc/cron.monthly/letsencrypt-renew
 ```
 
 Copy and paste this script into that file:
 
 ```sh
 #!/usr/bin/env bash
-letsencrypt renew
+certbot renew
 systemctl reload nginx
 ```
 
@@ -236,7 +278,7 @@ Save and exit the file.
 Make the script executable and restart the cron daemon so that the script runs daily:
 
 ```sh
-chmod +x /etc/cron.daily/letsencrypt-renew
+chmod +x /etc/cron.monthly/letsencrypt-renew
 systemctl restart cron
 ```
 
@@ -250,7 +292,8 @@ That is it. Your server will renew your [Let's Encrypt](https://letsencrypt.org/
  nano  seafile.service
 ```
 
-```[Unit]
+```sh
+[Unit]
 Description=Seafile Server
 Before=seahub.service
 After=network.target mariadb.service
@@ -271,7 +314,8 @@ WantedBy=multi-user.target
 ```sh
 nano seahub.service
 ```
-```[Unit]
+```sh
+[Unit]
 Description=Seafile Hub
 After=network.target seafile.target mariadb.service
 
@@ -294,7 +338,31 @@ We will configure the Seafile application.
 Change directory to `/var/www/html/seafile` and edit the [Seafile](https://seafile.com/) application configuration:
 
 ```sh
-cd /var/www/html/seafile
+cd /var/www/html/seafile/
+
+```
+```sh
+nano conf/ccnet.conf
+SERVICE_URL = https://
+```
+## ldap /freeipa configuration
+
+```sh
+[LDAP]
+HOST = ldap://
+BASE = dc=example,dc=org
+USER_DN = cn=Directory Manager
+PASSWORD =
+LOGIN_ATTR = mail
+
+[LDAP_SYNC]
+ENABLE_USER_SYNC = true
+DEACTIVE_USER_IF_NOTFOUND = true
+SYNC_INTERVAL = 60
+USER_OBJECT_CLASS = userOfNames
+ENABLE_EXTRA_USER_INFO_SYNC = true
+FIRST_NAME_ATTR = givenName
+LAST_NAME_ATTR = sn
 ```
 
 Congratulations and welcome to the fediverse!
