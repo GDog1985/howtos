@@ -38,7 +38,7 @@ The records added are:
 >
 > You can install [tmux](https://github.com/tmux/tmux/wiki) from the package manager:
 >
-```sh
+```
  yum  -y install tmux
  ```
 
@@ -52,14 +52,14 @@ The records added are:
 - python
 - mariadb
 
-```sh
+```
 yum -y install epel-release
 yum -y install python-imaging MySQL-python python-simplejson python-setuptools mariadb mariadb-server nginx
 
 ```
 ## Seafile install
 
-```sh
+```
 mkdir -p /var/www/seafile
 cd /var/www/seafile
 
@@ -72,13 +72,13 @@ cd seafile-server/
 ## Mysql  Configuration First
 
 
-```sh
+```
 systemctl start mariadb
 mysql_secure_installation
 
 mysql -u root -p
 ```
-```sh
+```
 create database ccnet_db character set = 'utf8';
 create database seafile_db character set = 'utf8';
 create database seahub_db character set = 'utf8';
@@ -93,7 +93,7 @@ exit
 ```
 ## After Mysql is all setup
 
-```sh
+```
 ./setup-seafile-mysql.sh
 
 ./seafile.sh start
@@ -102,7 +102,7 @@ exit
 ./seahub.sh stop
 ```
 
-```sh
+```
 cd /var/www/
 chown -R nginx:nginx *
 chown -R nginx:nginx /tmp/seahub_cache
@@ -115,14 +115,17 @@ You need to configure [nginx](http://nginx.org) to serve your [Seafile](https://
 
 **Reminder: Replace all occurrences of example.com with your own instance's domain or sub-domain.**
 
-`cd` to `/etc/nginx/sites-available` and open a new file:
+```
+cd /etc/nginx/sites-available``` and open a new file:
 
-```sh
+```
+```
 nano /etc/nginx/sites-available/example.com.conf`
 ```
 Copy and paste the following and make edits as necessary:
 
-```sh
+```nginx
+
 map $http_upgrade $connection_upgrade {
   default upgrade;
   ''      close;
@@ -167,7 +170,7 @@ server {
         fastcgi_read_timeout 36000;
     }
 
-    # Reverse Proxy for seahub
+    #Reverse Proxy for seahub
     location /seafhttp {
         rewrite ^/seafhttp(.*)$ $1 break;
         proxy_pass http://127.0.0.1:8082;
@@ -182,6 +185,7 @@ server {
     location /media {
         root /var/www/seafile/seafile-server/seahub;
     }
+
     #SEAFDAV ENABLE HERE BY DEFAULT
     location /seafdav {
         fastcgi_pass    127.0.0.1:8080;
@@ -214,13 +218,11 @@ server {
 
     }
 
-
 ```
 
+### Activate the [nginx](http://nginx.org) configuration added:
 
-## Activate the [nginx](http://nginx.org) configuration added:
-
-```sh
+```
 cd /etc/nginx/sites-enabled
 ln -s ../sites-available/example.com.conf
 ```
@@ -244,14 +246,14 @@ We need to generate Let's Encrypt certificates.
 
 Make sure that [nginx](http://nginx.org) is stopped at this point:
 
-```sh
+```
 systemctl stop nginx
 ```
 
 We will be creating the certificate twice, once with TLS SNI validation in standalone mode and the second time we will be using the webroot method. This is required due to the way
 [nginx](http://nginx.org) and the [Let's Encrypt](https://letsencrypt.org/) tool works.
 
-```sh
+```
  sudo certbot --nginx
  or
  sudo certbot --nginx certonly
@@ -268,13 +270,13 @@ You need to renew your certificate before the expiration date. Not doing so will
 
 We can create a cron job that runs monthly to do this:
 
-```sh
+```
 nano /etc/cron.monthly/letsencrypt-renew
 ```
 
 Copy and paste this script into that file:
 
-```sh
+```
 #!/usr/bin/env bash
 certbot renew
 systemctl reload nginx
@@ -282,9 +284,9 @@ systemctl reload nginx
 
 Save and exit the file.
 
-Make the script executable and restart the cron daemon so that the script runs daily:
+Make the script executable and restart the cron daemon so that the script runs monthly:
 
-```sh
+```
 chmod +x /etc/cron.monthly/letsencrypt-renew
 systemctl restart cron
 ```
@@ -295,13 +297,14 @@ That is it. Your server will renew your [Let's Encrypt](https://letsencrypt.org/
 
 ## Seafile systemd Service Files
 
+```
 cd /etc/systemd/system/
-
-```sh
+```
+```
  nano  seafile.service
 ```
 
-```sh
+```
 [Unit]
 Description=Seafile Server
 Before=seahub.service
@@ -320,10 +323,10 @@ WantedBy=multi-user.target
 
 ```
 
-```sh
+```
 nano seahub.service
 ```
-```sh
+```
 [Unit]
 Description=Seafile Hub
 After=network.target seafile.target mariadb.service
@@ -346,17 +349,17 @@ We will configure the Seafile application.
 
 Change directory to `/var/www/html/seafile` and edit the [Seafile](https://seafile.com/) application configuration:
 
-```sh
+```
 cd /var/www/html/seafile/
 
 ```
-```sh
+```
 nano conf/ccnet.conf
 SERVICE_URL = https://
 ```
 ## ldap / freeipa configuration
 
-```sh
+```
 [LDAP]
 HOST = ldap://
 BASE = dc=example,dc=org
@@ -377,7 +380,7 @@ LAST_NAME_ATTR = sn
 
 nano conf/seafdav.conf
 
-```sh
+```
 [WEBDAV]
 enabled = true
 port = 8080
