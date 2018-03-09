@@ -29,22 +29,23 @@ The records added are:
 -  A record (IPv4 address) for example.com
 -  AAAA record (IPv6 address) for example.com
 
-> ### A Helpful And Optional Note
->
-> Using `tmux` when following through with this guide will be helpful.
->
->
-> Not only will this help you not lose your place if you are disconnected, it will let you have multiple terminal windows open for switching contexts (root user versus the mastodon user).
->
-> You can install [tmux](https://github.com/tmux/tmux/wiki) from the package manager:
->
+
+## A Helpful And Optional Note
+
+ Using `tmux` when following through with this guide will be helpful.
+
+
+ Not only will this help you not lose your place if you are disconnected, it will let you have multiple terminal windows open for switching contexts (root user versus the mastodon user).
+
+ You can install [tmux](https://github.com/tmux/tmux/wiki) from the package manager:
+
 ```
  yum  -y install tmux
- ```
+```
 
 ## Dependency Installation
 
-#### Explanation of the dependencies
+## Explanation of the dependencies
 
 - imagemagick -  uses imagemagick for image related operations
 - nginx - nginx is our frontend web server
@@ -95,7 +96,8 @@ exit
 
 ```
 ./setup-seafile-mysql.sh
-
+```
+```
 ./seafile.sh start
 ./seahub.sh start
 ./seafile.sh stop
@@ -115,12 +117,11 @@ You need to configure [nginx](http://nginx.org) to serve your [Seafile](https://
 
 **Reminder: Replace all occurrences of example.com with your own instance's domain or sub-domain.**
 
-```
-cd /etc/nginx/sites-available``` and open a new file:
+cd to  /etc/nginx/sites-available  and open a new file:
+
 
 ```
-```
-nano /etc/nginx/sites-available/example.com.conf`
+nano /etc/nginx/sites-available/example.com.conf
 ```
 Copy and paste the following and make edits as necessary:
 
@@ -128,7 +129,7 @@ Copy and paste the following and make edits as necessary:
 
 map $http_upgrade $connection_upgrade {
   default upgrade;
-  ''      close;
+        close;
 }
 
 
